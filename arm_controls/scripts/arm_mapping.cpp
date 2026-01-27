@@ -53,8 +53,8 @@ class MinimalSubscriber : public rclcpp::Node
        }
        else
        {
-        motor_data.data[2]=-static_cast<int32_t>(roll*83);
-        motor_data.data[3]=static_cast<int32_t>(roll*83);
+        motor_data.data[2]=static_cast<int32_t>(roll*83);
+        motor_data.data[3]=-static_cast<int32_t>(roll*83);
        }
       if(msg.axes[2]!=1 && msg.axes[5]==1)
       {
