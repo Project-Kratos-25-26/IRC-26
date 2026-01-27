@@ -25,6 +25,14 @@ rcl_node_t node;
 rcl_timer_t timer;
 
 #define LED_PIN 13
+#define DEADZONE 10
+
+int l1 = 0;
+int l2 = 0;
+int base = 0;
+int gripper = 0;
+int rbevel = 0;
+int lbevel = 0;
 
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
@@ -45,12 +53,12 @@ void timer_callback(rcl_timer_t* timer,int64_t last_call_time)
 void subscription_callback1(const void * msgin)
 {  
   const std_msgs__msg__Int32MultiArray * msg0 = (const std_msgs__msg__Int32MultiArray*)msgin;
-  msg.data.data[0]=msg0->data.data[0];
-  msg.data.data[1]=msg0->data.data[1];
-  msg.data.data[2]=msg0->data.data[2];
-  msg.data.data[3]=msg0->data.data[3];
-  msg.data.data[4]=msg0->data.data[4];
-  msg.data.data[5]=msg0->data.data[5];
+  l1=msg0->data.data[0];
+  l2=msg0->data.data[1];
+  lbevel=msg0->data.data[2];
+  rbevel=msg0->data.data[3];
+  base=msg0->data.data[4];
+  gripper=msg0->data.data[5];
   //digitalWrite(LED_PIN, (msg->data.data[0] == 0) ? LOW : HIGH);  
 }
 void subscription_callback2(const void * msgin)
@@ -148,7 +156,7 @@ void setup() {
 }
 
 void loop() {
-  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(10))); //100Hz
 
   //link1
     if(msg_drop.data==1)
@@ -184,39 +192,39 @@ void loop() {
     digitalWrite(dropmotor_dir,HIGH);
     analogWrite(dropmotor_speed,0);
   }
-  if(msg.data.data[0]>0)
+  if(l1>0)
   {
     digitalWrite(l1_dir,HIGH);
-    analogWrite(l1_speed,msg.data.data[0]);
+    analogWrite(l1_speed,l1);
   }
   else
   {
     digitalWrite(l1_dir,LOW);
-    analogWrite(l1_speed,-msg.data.data[0]);
+    analogWrite(l1_speed,-l1);
   }
   
   //link2
-  if(msg.data.data[1]>0)
+  if(l2>0)
   {
     digitalWrite(l2_dir,LOW);
-    analogWrite(l2_speed,msg.data.data[1]);
+    analogWrite(l2_speed,l2);
   }
   else
   {
     digitalWrite(l2_dir,HIGH);
-    analogWrite(l2_speed,-msg.data.data[1]);
+    analogWrite(l2_speed,-l2);
   }
  
   //base_yaw
-  if(msg.data.data[4]>0)
+  if(base>0)
   {
     digitalWrite(base_dir,HIGH);
-    analogWrite(base_speed,msg.data.data[4]);
+    analogWrite(base_speed,base);
   }
-  else if(msg.data.data[4]<0)
+  else if(base<0)
   {
     digitalWrite(base_dir,LOW);
-    analogWrite(base_speed,-msg.data.data[4]);
+    analogWrite(base_speed,-base);
   }
   else
   {
@@ -225,14 +233,14 @@ void loop() {
   }
 
   //end_effector
-  if(msg.data.data[5]>0) {
+  if(gripper>0) {
     digitalWrite(finger_dir,HIGH);
-    analogWrite(finger_speed,msg.data.data[5]);
+    analogWrite(finger_speed,gripper);
   }
-  else if(msg.data.data[5]<0)
+  else if(gripper<0)
   {
     digitalWrite(finger_dir,LOW);
-    analogWrite(finger_speed,-msg.data.data[5]);
+    analogWrite(finger_speed,-gripper);
   }
   else
   {
@@ -240,29 +248,35 @@ void loop() {
     analogWrite(finger_speed,0);
   }
 
+  if(abs(lbevel) < DEADZONE){
+    analogWrite(bevel1_speed, 0);
+    analogWrite(bevel2_speed, 0);
+  }
+
+  else{
     //bevel left
-  if(msg.data.data[2]>0)
+  if(lbevel>0)
   {
     digitalWrite(bevel1_dir, LOW);
-     analogWrite(bevel1_speed,msg.data.data[2]);
-  }else
+     analogWrite(bevel1_speed,lbevel);
+  }
+  else
   {
     digitalWrite(bevel1_dir,HIGH);
-    analogWrite(bevel1_speed,-msg.data.data[2]);
+    analogWrite(bevel1_speed,-lbevel);
   }
     
     //bevel right 
-  if(msg.data.data[3]>0)
+  if(rbevel>0)
   {
-
     digitalWrite(bevel2_dir,LOW);
-    analogWrite(bevel2_speed,msg.data.data[3]);
-  }else
+    analogWrite(bevel2_speed,rbevel);
+  }
+  else
   {
     digitalWrite(bevel2_dir,HIGH);
-    analogWrite(bevel2_speed,-msg.data.data[3]);
+    analogWrite(bevel2_speed,-rbevel);
   }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////
-//FEEDBACK
+  }
 }
